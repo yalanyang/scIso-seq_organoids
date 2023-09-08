@@ -3,7 +3,7 @@ library(tidyr)
 library(stringr)
 library(dplyr)
 library(ggpubr)
-setwd("/Users/yangyalan/OneDrive - The University of Chicago/Chicago/organiod/Six_organiods_Cellreports/Co-exon")
+
 exon <- read.delim('all.collapse.sorted.filtered.final.multiexon.gtf',header=F)
 
 
@@ -209,5 +209,5 @@ co_exon3 <- co_exon3 %>% dplyr::filter(Pvalue != "NaN")
 co_exon3$FDR <-  p.adjust(co_exon3$Pvalue, method = "BY", n = length(co_exon3$Pvalue))
 
 co_exon3 <- co_exon3 %>% dplyr::filter(FDR < 0.001 & abs(OD)>2) %>% arrange(FDR)
-write.table(co_exon3, "co_exon2_new0210.txt",sep = "\t",quote = F,row.names=F)
+write.table(co_exon3, "co_exon.txt",sep = "\t",quote = F,row.names=F)
 
