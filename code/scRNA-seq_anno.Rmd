@@ -18,7 +18,6 @@ library(clustree)
 ```
 
 ```{r}
-setwd("/Users/yangyalan/OneDrive - The University of Chicago/Chicago/organiod/Six_organiods_Cellreports/scRNA")
   
 RYA1 = readRDS("../RYA1.rds")
 RYA3 = readRDS("../RYA3.rds")
@@ -71,15 +70,6 @@ organ.combined = readRDS("organiod_6samples.rds")
 DefaultAssay(organ.combined) <- "RNA"
 
 
-sink("ConservedMarkers.txt")
-print(all.clusters)
-sink()
-
-
-markers <- FindConservedMarkers(organ.combined, ident.1 = 6, grouping.var = "orig.ident", verbose = FALSE)
-head(nk.markers)
-
-
 markers <- FindAllMarkers(organ.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
 
 markers %>%
@@ -98,7 +88,7 @@ dev.off()
 ##We can then reassign the identity of the clusters to these cell types:
 ```{r}
 
-##        "NEUROD4", "HES6",
+##    
 
 Marker <- c("VIM",  "HES5", "SOX2",
             "FABP7", "HES1", "NES",
@@ -111,9 +101,6 @@ Marker <- c("VIM",  "HES5", "SOX2",
              "FLT1", 
             "DDIT3")
             
-
-
-
 organ.combined <- RenameIdents(organ.combined, `0` = "C0_Low Quality Cells", `1` = "C1_Excitatory Neuron",`2` = "C2_Immature Neuron",`3` = "C3_Neural Progenitor", `4` = "C4_Excitatory Neuron", `5` = "C5_Immature Neuron", `6` = "C6_Excitatory Neuron", `7` = "C7_Immature Neuron", `8` = "C8_Neural Progenitor", `9` = "C9_Excitatory Neuron", `10` = "C10_Epithelial", `11` = "C11_Dividing Progenitor", `12` = "C12_Excitatory Neuron", `13` = "C13_Stressed Cells", `14` = "C14_Inhibitory Neuron", `15` = "C15_Neural Progenitor", `16` = "C16_Epithelial", `17` = "C17_Low Quality Cells", `18` = "C18_Cajal–Retzius Cells", `19` = "C19_OPC", `20` = "C20_Fibroblast", `21` = "C21_Dividing Progenitor")
                                
 organ.combined$orig.ident <- factor(x = organ.combined$orig.ident, levels = c("RWI","RYA3","RYA2","RYA1","RUN3","RUN1"))
