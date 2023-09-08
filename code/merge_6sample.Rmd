@@ -1,0 +1,290 @@
+---
+title: "organiod"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## organiod single-cell analysis
+```{r}
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(ggplot2)
+library(data.table)
+library(clustree)
+```
+
+```{r}
+setwd("/Users/yangyalan/OneDrive - The University of Chicago/Chicago/organiod/Six_organiods_Cellreports/scRNA")
+  
+RYA1 = readRDS("../RYA1.rds")
+RYA3 = readRDS("../RYA3.rds")
+RWI = readRDS("../RWI.rds")
+RUN3 = readRDS("../RUN3.rds")
+RUN1 = readRDS("../RUN1.rds")
+RYA2 = readRDS("../RYA2.rds")
+
+RWI <- subset(RWI, subset = nFeature_RNA >= 300 & nFeature_RNA <= 5000 & percent.mt < 1)
+
+
+
+org.list <-c (RYA1,RYA3,RWI,RUN3,RUN1,RYA2)
+org.list <- lapply(X = org.list, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+features <- SelectIntegrationFeatures(object.list = org.list)
+organ.anchors <- FindIntegrationAnchors(object.list = org.list, anchor.features = features)
+organ.combined <- IntegrateData(anchorset = organ.anchors)
+DefaultAssay(organ.combined) <- "integrated"
+
+organ.combined <- ScaleData(organ.combined, verbose = FALSE)
+organ.combined <- RunPCA(organ.combined, npcs = 30, verbose = FALSE)
+
+organ.combined <- RunUMAP(organ.combined, reduction = "pca", dims = 1:30)
+organ.combined <- RunTSNE(organ.combined, dims = 1:30,check_duplicates = FALSE)
+organ.combined <- FindNeighbors(organ.combined, reduction = "pca", dims = 1:30)
+
+
+resolution.range <- seq(from = 0, to = 1, by = 0.1)
+organ.combined <- FindClusters(object = organ.combined, resolution = resolution.range)
+
+pdf("clustree.pdf", 7, 5, encoding="MacRoman")
+clustree(organ.combined, prefix = "integrated_snn_res.")
+dev.off()
+
+organ.combined <- FindClusters(organ.combined, resolution = 0.7)
+DimPlot(organ.combined, reduction = "tsne")
+saveRDS(organ.combined, file = "organiod_6samples.rds")
+
+```
+
+
+##idengifiy marker genes
+```{r}
+
+organ.combined = readRDS("organiod_6samples.rds")
+
+DefaultAssay(organ.combined) <- "RNA"
+
+
+sink("ConservedMarkers.txt")
+print(all.clusters)
+sink()
+
+
+markers <- FindConservedMarkers(organ.combined, ident.1 = 6, grouping.var = "orig.ident", verbose = FALSE)
+head(nk.markers)
+
+
+markers <- FindAllMarkers(organ.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+markers %>%
+    group_by(cluster) %>%
+    top_n(n = 30, wt = avg_log2FC) -> top30
+write.table(top30,"organiod_markers_top30.txt",sep = "\t",quote=F,row.names = F)
+
+
+pdf("marker_heatmap.pdf", 15,7, encoding="MacRoman")
+DoHeatmap(organ.combined, features = top30$gene) + NoLegend()
+dev.off()
+
+```
+
+
+##We can then reassign the identity of the clusters to these cell types:
+```{r}
+
+##        "NEUROD4", "HES6",
+
+Marker <- c("VIM",  "HES5", "SOX2",
+            "FABP7", "HES1", "NES",
+            "MKI67",  "ASPM","UBE2C",
+            "OLIG1", "OLIG2",
+            "STMN2", "RELN", "NEUROD1","GRIA2","SLC17A6", "BCL11B","NEUROD6","FEZF2",
+            "PCP4","FOXP2",
+            "GAD1", "GAD2",
+            "KRT10","KRT18",
+             "FLT1", 
+            "DDIT3")
+            
+
+
+
+organ.combined <- RenameIdents(organ.combined, `0` = "C0_Low Quality Cells", `1` = "C1_Excitatory Neuron",`2` = "C2_Immature Neuron",`3` = "C3_Neural Progenitor", `4` = "C4_Excitatory Neuron", `5` = "C5_Immature Neuron", `6` = "C6_Excitatory Neuron", `7` = "C7_Immature Neuron", `8` = "C8_Neural Progenitor", `9` = "C9_Excitatory Neuron", `10` = "C10_Epithelial", `11` = "C11_Dividing Progenitor", `12` = "C12_Excitatory Neuron", `13` = "C13_Stressed Cells", `14` = "C14_Inhibitory Neuron", `15` = "C15_Neural Progenitor", `16` = "C16_Epithelial", `17` = "C17_Low Quality Cells", `18` = "C18_Cajal–Retzius Cells", `19` = "C19_OPC", `20` = "C20_Fibroblast", `21` = "C21_Dividing Progenitor")
+                               
+organ.combined$orig.ident <- factor(x = organ.combined$orig.ident, levels = c("RWI","RYA3","RYA2","RYA1","RUN3","RUN1"))
+
+pdf("tSNE_split.pdf", 10, 5, encoding="MacRoman")
+DimPlot(organ.combined, reduction = "tsne",split.by = "orig.ident",ncol=3)
+dev.off()
+
+pdf("tSNE_label.pdf", 10, 5, encoding="MacRoman")
+DimPlot(organ.combined, label = TRUE,reduction = "tsne")
+dev.off()
+
+
+pdf("UMAP_label.pdf", 10, 5, encoding="MacRoman")
+DimPlot(organ.combined, label = TRUE,reduction = "umap")
+dev.off()
+
+pdf("UMAP_split.pdf", 10, 5, encoding="MacRoman")
+DimPlot(organ.combined, reduction = "umap",split.by = "orig.ident",ncol=3)
+dev.off()
+
+
+
+organ.combined@active.ident <- factor(organ.combined@active.ident, 
+                            levels=c("C17_Low Quality Cells", 
+                                     "C0_Low Quality Cells",
+                                    "C13_Stressed Cells",
+                                    "C20_Fibroblast",
+                                    "C16_Epithelial",
+                                     "C10_Epithelial",
+                                     "C7_Immature Neuron",
+                                    "C5_Immature Neuron",
+                                    "C2_Immature Neuron",
+                                     "C14_Inhibitory Neuron",
+                                     "C12_Excitatory Neuron",
+                                      "C9_Excitatory Neuron",
+                                     "C4_Excitatory Neuron",
+                                    "C1_Excitatory Neuron",
+                                      "C6_Excitatory Neuron",
+                                    "C18_Cajal–Retzius Cells",
+                                    "C19_OPC",
+                                    "C21_Dividing Progenitor",
+                                    "C11_Dividing Progenitor",
+                                    "C15_Neural Progenitor",
+                                    "C8_Neural Progenitor",
+                                    "C3_Neural Progenitor"))
+
+
+
+write.table(organ.combined@meta.data,"meta.data.txt",sep="\t")
+#DotPlot
+pdf("marker_heatmap.pdf", 12,5, encoding="MacRoman")
+DotPlot(organ.combined, features=Marker) + theme_bw()+ theme(axis.text.x =element_text(angle=45,hjust=1,vjust=1))
+dev.off()
+
+#VlnPlot
+pdf("marker_VolionPlot.pdf", 7, 10, encoding="MacRoman")
+VlnPlot(organ.combined, Marker, stack = TRUE, sort = F, flip = TRUE) +  theme(legend.position = "none")
+dev.off()
+
+
+
+
+pdf("marker.pdf", 9,2.5, encoding="MacRoman")
+FeaturePlot(organ.combined, features = c("VIM","STMN2","MKI67"),reduction="umap",ncol = 3)
+dev.off()
+
+pdf("Excitatory.pdf", 9,5, encoding="MacRoman")
+FeaturePlot(organ.combined, features = c("GRIA2","SLC17A6","BCL11B","NEUROD6"),reduction="umap",ncol = 3)
+dev.off()
+
+pdf("Inhibitory.pdf", 9,2.5, encoding="MacRoman")
+FeaturePlot(organ.combined, features = c("GAD1","GAD2","GAD2"),reduction="umap",ncol = 3)
+dev.off()
+
+pdf("OPC.pdf", 9,2.5, encoding="MacRoman")
+FeaturePlot(organ.combined, features = c("OLIG1","OLIG2","PDGFRA"),reduction="umap",ncol = 3)
+dev.off()
+
+
+
+pdf("Cajal.pdf", 9,2.5, encoding="MacRoman")
+FeaturePlot(organ.combined, features = c("RELN","NEUROD1","RELN"),reduction="umap",ncol = 3)
+dev.off()
+
+
+pdf("Dividing.pdf", 9,2.5, encoding="MacRoman")
+FeaturePlot(organ.combined, features = c("MKI67", "ASPM","UBE2C"),reduction="umap",ncol = 3)
+dev.off()
+
+pdf("Progentior.pdf", 9,2.5, encoding="MacRoman")
+FeaturePlot(organ.combined, features = c("HES5", "SOX2","NES"),reduction="umap",ncol = 3)
+dev.off()
+
+  
+barcode <- organ.combined@active.ident
+write.table(barcode,"barcode_6samples.txt",sep = "\t",quote=F)
+
+sum <- table(organ.combined$orig.ident,organ.combined$seurat_clusters)
+write.table(sum,"sum.txt",sep = "\t",quote=F)
+
+
+cell_number <- table(organ.combined$orig.ident,organ.combined$seurat_clusters)
+write.table(cell_number,"cell_number_per_cluster.txt",sep = "\t",quote=F)
+
+
+```
+
+
+##Cell cycle score
+```{r}
+# A list of cell cycle markers, from Tirosh et al, 2015, is loaded with Seurat.  We can
+# segregate this list into markers of G2/M phase and markers of S phase
+s.genes <- cc.genes$s.genes
+g2m.genes <- cc.genes$g2m.genes
+organ.combined <- CellCycleScoring(organ.combined, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
+head(organ.combined[[]])
+RidgePlot(organ.combined, features = c("PCNA", "TOP2A", "MCM6", "MKI67"), ncol = 2)
+
+organ.combined <- ScaleData(organ.combined, vars.to.regress = c("S.Score", "G2M.Score"), features = rownames(organ.combined))
+#organ.combined <- RunPCA(organ.combined, features = VariableFeatures(organ.combined), nfeatures.print = 10)
+pdf("cell_cycle.pdf", 7, 5, encoding="MacRoman")
+DimPlot(organ.combined,reduction = 'umap')
+dev.off()
+```
+
+## expression of RBPs across cell types
+## the list of RBPs was downloaded from https://www.nature.com/articles/nrg3813#Sec9
+```{r}
+organ.combined = readRDS("organiod_6samples.rds")
+
+DefaultAssay(organ.combined) <- "RNA"
+organ.combined <- RenameIdents(organ.combined, `0` = "Low Quality Cells", `1` = "Excitatory Neuron",`2` = "Immature Neuron",`3` = "Neural Progenitor", `4` = "Excitatory Neuron", `5` = "Immature Neuron", `6` = "Excitatory Neuron", `7` = "Immature Neuron", `8` = "Neural Progenitor", `9` = "Excitatory Neuron", `10` = "Epithelial", `11` = "Dividing Progenitor", `12` = "Excitatory Neuron", `13` = "Stressed Cells", `14` = "Inhibitory Neuron", `15` = "Neural Progenitor", `16` = "Epithelial", `17` = "Low Quality Cells", `18` = "Cajal.Retzius Cells", `19` = "OPC", `20` = "Fibroblast", `21` = "Dividing Progenitor")
+AveExp=as.data.frame(AverageExpression(object = organ.combined)$RNA)
+AveExp$gene.name = rownames(AveExp)
+
+RBP <- read.table("/Users/yangyalan/OneDrive - The University of Chicago/Chicago/Database/RBP_2013-NRG.txt",sep="\t",header=T)
+RBP_exp <-merge(AveExp, RBP, all = FALSE)
+rownames(RBP_exp) <- RBP_exp$gene.name
+RBP_exp <- RBP_exp[,c(3:5,7,9:11)]
+RBP_exp <- RBP_exp[,c(1,5,6,2,7,3:4)]
+library(MatrixGenerics)
+library(pheatmap)
+RBP_exp <- RBP_exp[which(rowMaxs(as.matrix(RBP_exp[,c(1:7)]))> 0.1),]
+library(RColorBrewer)
+out <- pheatmap(RBP_exp,scale="row",color =rev(brewer.pal(11, "RdBu")))
+
+library(ComplexHeatmap)
+library(circlize)
+scaled_mat <- t(scale(t(RBP_exp)))
+
+genes_to_show = c('ELAVL1',"CPEB2",'PTBP1', 'PTBP2','RBFOX1', 'RBFOX2', 'RBFOX3',"SRSF3")
+mark_at = which(rownames(scaled_mat) %in% genes_to_show)
+
+ha = rowAnnotation(foo = anno_mark(at = mark_at, labels = genes_to_show))
+
+col_fun = colorRamp2(c(-1.6,0.6,2.8), c("purple","white", "orange"))
+
+pdf(file="RBP_expression.pdf",6,10, encoding="MacRoman")
+ht <- Heatmap(scaled_mat,row_names_gp = gpar(fontsize = 6), right_annotation = ha,show_row_dend = FALSE,show_row_names = FALSE,col = col_fun)
+draw(ht)
+dev.off()
+
+genes_enrich = c('ELAVL1',"CPEB2",'PTBP1', 'RBFOX1',"CPEB2")
+
+gene_enrich = scaled_mat[c('PTBP1', "CPEB2",'RBFOX1','ELAVL1'),]
+
+
+pdf(file="RBP_candidate_expression.pdf",6,4, encoding="MacRoman")
+pt <- pheatmap(gene_enrich, color =colorRamp2(c(-1.6,0.6,2.8), c("purple","white", "orange")), cluster_rows = F, cluster_cols =F)
+draw(pt)
+dev.off()
+```
+
