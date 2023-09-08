@@ -15,7 +15,7 @@ ref=/project2/xczhang/Yalan/reference
 #conda activate flair
 
 #for i in Neuron Progenitor
-for i in Neuron
+
 do
 minimap2 -t 30 -ax splice -uf --secondary=no -C5 /project2/xczhang/Yalan/reference/GRCh38.primary_assembly.genome.fa ../$i\.rename.fa > $i\.mapped.sam 
 samtools view -bS $i\.mapped.sam|samtools sort > $i\.mapped.bam
