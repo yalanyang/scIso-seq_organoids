@@ -6,14 +6,14 @@ library(ggpubr)
 library(GenomicRanges)
 
 
-setwd("/Users/yangyalan/OneDrive - The University of Chicago/Chicago/organiod/Six_organiods_Cellreports/Flair/Neuron_Progenitor")
+setwd("")
 
-ES<- read.table("/Users/yangyalan/OneDrive - The University of Chicago/Chicago/organiod/Six_organiods_Cellreports/Flair/diff/Neuron_Progentior.es.fishers.tsv",header=T,sep='\t')
+ES<- read.table("Neuron_Progentior.es.fishers.tsv",header=T,sep='\t')
 group1 <- "Neuron"
 group2 <- "Progenitor"
 #ES <- ES %>% filter(ES[,6] <=0.05) 
 
-gene <- read.table('/Users/yangyalan/OneDrive - The University of Chicago/Chicago/organiod/RYA1/Iso-seq/Homo_sapiens.gencode.v40.gene_annotation_table.txt',header=TRUE,sep='\t')
+gene <- read.table('Homo_sapiens.gencode.v40.gene_annotation_table.txt',header=TRUE,sep='\t')
 gene1 <- gene %>% select(Gene, GeneSymbol)
 ES$Gene <- sapply(strsplit(ES$isoform_ids,split="[_,]"), tail, 1)
 ES = ES[,c(2:4,13:14)]
