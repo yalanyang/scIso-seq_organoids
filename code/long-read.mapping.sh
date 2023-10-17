@@ -12,7 +12,6 @@
 ref=/project2/xczhang/Yalan/reference
 
 #conda activate flair
-cd /home/yangyalan/scratch-midway2/flair
 for i in Immature.Neuron OPC Dividing.Progenitor Cajal–Retzius.Cells Neural.Progenitor Inhibitory.Neuron Excitatory.Neuron
 for i in CajalRetzius.Cells
 do
