@@ -14,7 +14,7 @@ ref=/project2/xczhang/Yalan/reference
 
 #conda activate flair
 
-#for i in Neuron Progenitor
+for i in Neuron Progenitor
 
 do
 minimap2 -t 30 -ax splice -uf --secondary=no -C5 /project2/xczhang/Yalan/reference/GRCh38.primary_assembly.genome.fa ../$i\.rename.fa > $i\.mapped.sam 
@@ -23,21 +23,20 @@ samtools index $i\.mapped.bam
 bam2Bed12 -i $i\.mapped.bam > $i\.bed12
 done
 
-#cat Neuron.bed12 Progenitor.bed12 |sort|uniq > flair.aligned.bed
+cat Neuron.bed12 Progenitor.bed12 |sort|uniq > flair.aligned.bed
 
-#flair correct -q Neuron.bed12 -g $ref/GRCh38.primary_assembly.genome.fa -f $ref/gencode.v40.annotation.gtf --output Neuron 
+flair correct -q Neuron.bed12 -g $ref/GRCh38.primary_assembly.genome.fa -f $ref/gencode.v40.annotation.gtf --output Neuron 
 
-#flair correct -q Progenitor.bed12 -g $ref/GRCh38.primary_assembly.genome.fa -f $ref/gencode.v40.annotation.gtf --output Progenitor
+flair correct -q Progenitor.bed12 -g $ref/GRCh38.primary_assembly.genome.fa -f $ref/gencode.v40.annotation.gtf --output Progenitor
 
-#cat Neuron_all_corrected.bed Progenitor_all_corrected.bed > flair_all_corrected.bed
+cat Neuron_all_corrected.bed Progenitor_all_corrected.bed > flair_all_corrected.bed
 
-#flair collapse -g $ref/GRCh38.primary_assembly.genome.fa -r ../NsvP/Neuron.rename.fasta,../NsvP/Progenitor.rename.fasta -q flair_all_corrected.bed --gtf $ref/gencode.v40.annotation.gtf
+flair collapse -g $ref/GRCh38.primary_assembly.genome.fa -r ../NsvP/Neuron.rename.fasta,../NsvP/Progenitor.rename.fasta -q flair_all_corrected.bed --gtf $ref/gencode.v40.annotation.gtf
 
-#flair quantify -r reads_manifest.tsv -i flair.collapse.isoforms.fa 
+flair quantify -r reads_manifest.tsv -i flair.collapse.isoforms.fa 
 
-#flair diffSplice -i flair.collapse.isoforms.bed -q flair.quantify.counts.tsv -o diff
-#diff_iso_usage flair.quantify.counts.tsv Neuron_Neuron_batch1 Progentior_Progentior_batch1 neuron_progentior.diff_isos.txt
-
-#diffsplice_fishers_exact diff/diffsplice.es.events.quant.tsv Neuron_Neuron_batch1 Progentior_Progentior_batch1 neuron_progentior.es.fishers.tsv
+flair diffSplice -i flair.collapse.isoforms.bed -q flair.quantify.counts.tsv -o diff
+diff_iso_usage flair.quantify.counts.tsv Neuron_Neuron_batch1 Progentior_Progentior_batch1 neuron_progentior.diff_isos.txt
+diffsplice_fishers_exact diff/diffsplice.es.events.quant.tsv Neuron_Neuron_batch1 Progentior_Progentior_batch1 neuron_progentior.es.fishers.tsv
 
 
