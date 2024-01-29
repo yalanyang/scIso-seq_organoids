@@ -1,0 +1,11 @@
+
+lima --isoseq --dump-clips --peek-guess -j 24 m54336U_230623_192119.hifi_reads.bam 10x_Chromium_3p_primers.fasta RUN1_C1.fl.bam
+lima --isoseq --dump-clips --peek-guess -j 24 m54336U_230627_184003.hifi_reads.bam 10x_Chromium_3p_primers.fasta RUN1_C2.fl.bam
+lima --isoseq --dump-clips --peek-guess -j 24 m54336U_230701_225244.hifi_reads.bam 10x_Chromium_3p_primers.fasta RUN1_C3.fl.bam
+
+for i in RUN1_C1 RUN1_C2 RUN1_C3
+do
+isoseq3 tag $i\.fl.5p--3p.bam $i\.5p--3p.tagged.bam --design T-12U-16B
+isoseq3 refine --require-polya $i\.5p--3p.tagged.bam 10x_Chromium_3p_primers.fasta $i\.5p--3p.tagged.refined.bam  
+isoseq3 dedup --max-tag-mismatches 1 --max-tag-shift 0  $i\.5p--3p.tagged.refined.bam $i\.5p--3p.tagged.refined.dedup.bam 
+done
